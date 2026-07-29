@@ -1,0 +1,4 @@
+br\com\cindyperico\raizesdonordeste\controller\ProdutoController.class
+br\com\cindyperico\raizesdonordeste\controller\UnidadeProdutoController.class
+br\com\cindyperico\raizesdonordeste\controller\FuncionarioController.class
+br\com\cindyperico\raizesdonordeste\service\EstoqueService.class
