@@ -1,271 +1,165 @@
-# Rede de Lanchonetes Raízes do Nordeste
+# Raízes do Nordeste — API Back-end
 
-## Projeto Multidisciplinar - Trilha Back-End
+API REST do projeto multidisciplinar da trilha Back-end para a rede de lanchonetes
+**Raízes do Nordeste**. A solução entrega o fluxo crítico completo
+**Pedido → Pagamento externo (mock) → Atualização de status**, com persistência em banco,
+autenticação JWT com perfis, controle de estoque por unidade, programa de fidelidade com
+consentimento LGPD, auditoria e documentação OpenAPI.
 
-API REST desenvolvida para gerenciamento de uma rede de lanchonetes, permitindo o controle de clientes, produtos, unidades, pedidos, pagamentos e relatórios administrativos.
+## 1. Requisitos
 
----
+| Item | Versão |
+| --- | --- |
+| Java (JDK) | 17 ou superior |
+| Maven | 3.9+ (ou o wrapper `./mvnw`) |
+| Banco de dados | H2 em memória (padrão, já embarcado). Compatível com PostgreSQL/MySQL via variáveis de ambiente |
 
-# Tecnologias Utilizadas
+Não é necessário instalar banco de dados para executar o projeto.
 
-- Java
-- Spring Boot
-- Spring Data JPA
-- Banco de Dados MySQL/PostgreSQL
-- Maven
-- Swagger/OpenAPI
-- PowerShell para testes da API
+## 2. Configuração (variáveis de ambiente)
 
----
-
-# Funcionalidades Implementadas
-
-## Clientes
-
-- Cadastro de clientes;
-- Atualização de dados;
-- Controle de consentimento LGPD;
-- Sistema de pontos de fidelidade.
-
-## Produtos
-
-- Cadastro de produtos;
-- Controle de disponibilidade por unidade;
-- Controle de estoque.
-
-## Pedidos
-
-- Criação de pedidos;
-- Controle de status:
-
-  - Criado
-  - Em preparo
-  - Pronto
-  - Finalizado
-
-## Pagamentos
-
-- Solicitação de pagamento;
-- Confirmação de pagamento.
-
-## Relatórios
-
-- Produtos mais vendidos;
-- Relatório financeiro.
-
----
-
-# Como Executar o Projeto
-
-## Pré-requisitos
-
-Necessário instalar:
-
-- Java JDK 17 ou superior;
-- Maven;
-- Banco de dados configurado.
-
----
-
-# Instalação
-
-Clonar o projeto:
+Todas as configurações têm valor padrão, então a API roda sem nenhuma variável definida.
+Para personalizar, copie o arquivo de exemplo e ajuste os valores:
 
 ```bash
-git clone URL_DO_PROJETO
+cp .env.example .env
 ```
 
-Entrar na pasta:
+| Variável | Padrão | Descrição |
+| --- | --- | --- |
+| `SERVER_PORT` | `8082` | Porta HTTP da API |
+| `DB_URL` / `DB_DRIVER` / `DB_USERNAME` / `DB_PASSWORD` | H2 em memória | Conexão do banco |
+| `JPA_DDL_AUTO` | `update` | Estratégia de criação do schema |
+| `JWT_SECRET` | chave de desenvolvimento | Chave HMAC do token (use no mínimo 32 caracteres e troque em produção) |
+| `JWT_EXPIRATION_MS` | `3600000` | Validade do token (1 hora) |
+| `SEED_ENABLED` | `true` | Carga inicial de dados de demonstração |
+
+No Linux/macOS as variáveis podem ser exportadas antes de iniciar a API:
 
 ```bash
-cd nome-do-projeto
+export $(grep -v '^#' .env | xargs)
 ```
 
-Instalar dependências:
+## 3. Instalar dependências e compilar
 
 ```bash
-mvn clean install
+mvn clean package
 ```
 
----
+## 4. Banco de dados e carga inicial (seed)
 
-# Configuração do Banco de Dados
+O schema é criado automaticamente pelo Hibernate na inicialização (não há migrations manuais).
+Com `SEED_ENABLED=true`, a classe `config/DataSeeder` popula na primeira execução:
 
-Configurar o acesso ao banco no arquivo:
+- 2 unidades (Recife e Fortaleza);
+- 3 produtos com preço por unidade e estoque;
+- 1 cliente de demonstração;
+- 3 usuários, um por perfil.
 
-```
-src/main/resources/application.properties
-```
+| Perfil | E-mail | Senha |
+| --- | --- | --- |
+| ADMIN | `admin@raizes.com` | `admin12345` |
+| GERENTE | `gerente@raizes.com` | `gerente12345` |
+| CLIENTE | `maria.souza@example.com` | `cliente12345` |
 
-Exemplo:
+> Credenciais apenas para avaliação local. Em produção, defina `SEED_ENABLED=false`.
 
-```properties
-spring.datasource.url=jdbc:mysql://localhost:3306/raizes_nordeste
-spring.datasource.username=usuario
-spring.datasource.password=senha
+Console do banco H2: <http://localhost:8082/h2-console> (JDBC URL `jdbc:h2:mem:raizesdb`, usuário `sa`, senha em branco).
 
-spring.jpa.hibernate.ddl-auto=update
-spring.jpa.show-sql=true
-```
-
----
-
-# Executando a Aplicação
-
-Executar:
+## 5. Iniciar a API
 
 ```bash
 mvn spring-boot:run
 ```
 
-A API ficará disponível em:
+Ou, após o `package`:
 
-```
-http://localhost:8082
-```
-
----
-
-# Documentação da API
-
-A documentação dos endpoints está disponível através do Swagger:
-
-```
-http://localhost:8082/swagger-ui/index.html
+```bash
+java -jar target/raizes-do-nordeste-api-0.0.1-SNAPSHOT.jar
 ```
 
-O Swagger permite visualizar e testar os recursos disponíveis na API.
+A API sobe em <http://localhost:8082> (health check em `GET /`).
 
----
+## 6. Documentação da API (Swagger/OpenAPI)
 
-# Testes da API
+- Swagger UI: <http://localhost:8082/swagger-ui/index.html> (rota curta: `/swagger-ui.html`)
+- Contrato OpenAPI em JSON: <http://localhost:8082/v3/api-docs>
 
-Os testes foram realizados utilizando:
+Para usar endpoints protegidos no Swagger: faça `POST /api/auth/login`, copie o `accessToken`
+e informe-o no botão **Authorize** (esquema `bearerAuth`).
 
-```
-PowerShell
-```
+## 7. Autenticação e perfis
 
-Com o comando:
-
-```powershell
-Invoke-WebRequest
-```
-
-Foram validados os seguintes recursos:
-
-- Cadastro de clientes;
-- Produtos por unidade;
-- Criação de pedidos;
-- Fluxo de pagamento;
-- Atualização de status dos pedidos;
-- Relatórios administrativos;
-- Consentimento LGPD;
-- Pontos de fidelidade.
-
-As evidências dos testes estão documentadas no arquivo:
-
-```
-Relatorio_Evidencias_Testes_API
+```bash
+curl -X POST http://localhost:8082/api/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"admin@raizes.com","senha":"admin12345"}'
 ```
 
----
+A resposta traz `accessToken`, que deve ser enviado em `Authorization: Bearer <token>`.
 
-# Estrutura do Projeto
+| Perfil | Permissões |
+| --- | --- |
+| `ADMIN` | Acesso total, incluindo exclusão e anonimização de clientes |
+| `GERENTE` | Cadastros da rede, estoque, cardápio e relatórios |
+| `CLIENTE` | Cardápio, próprios pedidos e pagamento; sem acesso a relatórios e cadastros |
 
-Exemplo da organização:
+## 8. Rodar os testes
 
-```
-src/main/java
-
-├── controller
-│   └── Endpoints da API
-│
-├── service
-│   └── Regras de negócio
-│
-├── repository
-│   └── Comunicação com banco de dados
-│
-├── model
-│   └── Entidades do sistema
-│
-└── dto
-    └── Objetos de transferência de dados
+```bash
+mvn test
 ```
 
----
+São 17 testes automatizados (JUnit 5 + MockMvc) cobrindo autenticação, autorização, validações,
+fluxo de pedido, pagamento mock aprovado e recusado, estoque, fidelidade/LGPD e auditoria.
 
-# Endpoints Principais
+## 9. Coleção Postman
 
-## Clientes
+- Coleção: [`docs/postman/RaizesDoNordeste.postman_collection.json`](docs/postman/RaizesDoNordeste.postman_collection.json)
+- Environment: [`docs/postman/RaizesDoNordeste.postman_environment.json`](docs/postman/RaizesDoNordeste.postman_environment.json)
 
-Cadastro de clientes:
+Importe os dois arquivos no Postman, selecione o environment **Raizes do Nordeste - Local**
+e execute as pastas na ordem: `Auth` → `Cardapio` → `Pedidos` → `Pagamento` →
+`Fidelidade e LGPD` → `Relatorios` → `Erros`. O login já salva o token nas variáveis de ambiente
+automaticamente. Também é possível rodar tudo pelo Collection Runner ou por linha de comando:
 
-```
-POST /api/clientes
-```
-
----
-
-## Produtos por Unidade
-
-Disponibilização de produtos:
-
-```
-PUT /api/unidades/{id}/produtos/{id}
+```bash
+newman run docs/postman/RaizesDoNordeste.postman_collection.json \
+  -e docs/postman/RaizesDoNordeste.postman_environment.json
 ```
 
----
+## 10. Documentação complementar
 
-## Pedidos
+| Documento | Conteúdo |
+| --- | --- |
+| [`docs/DIAGRAMAS/DER.md`](docs/DIAGRAMAS/DER.md) | Diagrama entidade-relacionamento |
+| [`docs/DIAGRAMAS/CLASSES.md`](docs/DIAGRAMAS/CLASSES.md) | Diagrama de classes e sequência do fluxo crítico |
+| [`docs/DIAGRAMAS/CASOS_DE_USO.md`](docs/DIAGRAMAS/CASOS_DE_USO.md) | Casos de uso e descrição da feature crítica |
+| [`docs/ARQUITETURA.md`](docs/ARQUITETURA.md) | Camadas e separação de responsabilidades |
+| [`docs/ENDPOINTS.md`](docs/ENDPOINTS.md) | Contrato detalhado dos endpoints |
+| [`docs/LGPD.md`](docs/LGPD.md) | Dados pessoais, base legal, consentimento e anonimização |
+| [`TEST_PLAN.md`](TEST_PLAN.md) | Plano de testes com os cenários positivos e negativos |
+| [`DOCUMENTACAO.md`](DOCUMENTACAO.md) | Documento acadêmico consolidado |
 
-Criação de pedidos:
-
-```
-POST /api/pedidos
-```
-
----
-
-## Pagamento
-
-Solicitação:
-
-```
-POST /api/pedidos/{id}/pagamento/solicitar
-```
-
-Confirmação:
+## 11. Estrutura do projeto
 
 ```
-POST /api/pedidos/{id}/pagamento/confirmar
+src/main/java/br/com/cindyperico/raizesdonordeste
+├── config/         # OpenAPI, segurança e carga inicial (seed)
+├── controller/     # Camada de API (rotas e contratos)
+├── dto/            # Contratos de request/response e validações
+├── exception/      # Exceções de domínio e handler global de erros
+├── middleware/     # Filtro de auditoria de acessos
+├── model/          # Entidades de domínio e enums
+├── repository/     # Persistência (Spring Data JPA)
+├── security/       # JWT, filtro de autenticação e handlers 401/403
+└── service/        # Casos de uso e regras de negócio
 ```
 
----
+## 12. Limitações conhecidas
 
-## Relatórios
-
-Produtos mais vendidos:
-
-```
-GET /api/relatorios/mais-vendidos
-```
-
-Relatório financeiro:
-
-```
-GET /api/relatorios/financeiro
-```
-
----
-
-# Autor
-
-Cindy Perico
-
-Curso: Análise e Desenvolvimento de Sistemas
-
-Projeto Multidisciplinar - Trilha Back-End
-
-Ano: 2026
+- O pagamento é **simulado**: não há integração com provedor real; a aprovação/recusa é enviada
+  manualmente ao endpoint de confirmação, representando o callback do gateway.
+- O banco padrão é H2 em memória, portanto os dados são perdidos ao reiniciar a aplicação.
+- Promoções/campanhas estão implementadas apenas como desconto manual no pedido
+  (`POST /api/pedidos/{id}/desconto`); regras automáticas ficaram como proposta.

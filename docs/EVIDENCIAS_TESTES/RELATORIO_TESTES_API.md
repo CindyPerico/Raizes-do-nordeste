@@ -8,6 +8,10 @@
 **Ferramenta de testes:** PowerShell utilizando Invoke-WebRequest  
 **Data dos testes:** 09/08/2026  
 
+> Este relatório registra a execução manual via PowerShell. As evidências reproduzíveis e
+> atualizadas do projeto são os testes automatizados (`mvn test`) e a coleção Postman em
+> `docs/postman/`, descritos no plano de testes (`TEST_PLAN.md`).
+
 ---
 
 # 1. Objetivo dos Testes
@@ -123,7 +127,7 @@ Dados enviados:
 ```json
 {
  "unidadeId":1,
- "canal":"APP",
+ "canalPedido":"APP",
  "itens":[
    {
     "produtoId":2,
@@ -145,7 +149,7 @@ Resposta obtida:
 {
  "id":4,
  "unidadeId":1,
- "canal":"APP",
+ "canalPedido":"APP",
  "status":"CRIADO"
 }
 ```

@@ -1,7 +1,7 @@
 ﻿{
   "clienteId": null,
   "unidadeId": 1,
-  "canal": "BALCAO",
+  "canalPedido": "BALCAO",
   "itens": [
     {
       "produtoId": 1,
