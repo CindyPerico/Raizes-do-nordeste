@@ -3,16 +3,22 @@ package br.com.cindyperico.raizesdonordeste.service;
 import br.com.cindyperico.raizesdonordeste.dto.cliente.ClienteAddPontosRequest;
 import br.com.cindyperico.raizesdonordeste.dto.cliente.ClienteConsentRequest;
 import br.com.cindyperico.raizesdonordeste.dto.cliente.ClienteCreateRequest;
+import br.com.cindyperico.raizesdonordeste.dto.cliente.ClienteResgatePontosRequest;
 import br.com.cindyperico.raizesdonordeste.dto.cliente.ClienteUpdateRequest;
+import br.com.cindyperico.raizesdonordeste.exception.BusinessRuleException;
+import br.com.cindyperico.raizesdonordeste.exception.NotFoundException;
 import br.com.cindyperico.raizesdonordeste.model.Cliente;
 import br.com.cindyperico.raizesdonordeste.repository.ClienteRepository;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
-import java.util.List;
 
 @Service
+@Transactional
 public class ClienteService {
 
     private final ClienteRepository clienteRepository;
@@ -40,12 +46,13 @@ public class ClienteService {
         return saved;
     }
 
-    public List<Cliente> list() {
-        return clienteRepository.findAll();
+    @Transactional(readOnly = true)
+    public Page<Cliente> list(Pageable pageable) {
+        return clienteRepository.findAll(pageable);
     }
 
     public Cliente get(Long id) {
-        return clienteRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Cliente não encontrado"));
+        return clienteRepository.findById(id).orElseThrow(() -> new NotFoundException("Cliente não encontrado"));
     }
 
     public Cliente update(HttpServletRequest request, Long id, ClienteUpdateRequest dto) {
@@ -86,9 +93,25 @@ public class ClienteService {
 
     public Cliente adicionarPontos(HttpServletRequest request, Long id, ClienteAddPontosRequest dto) {
         Cliente c = get(id);
+        exigirConsentimento(c);
+
         c.setPontosFidelidade(c.getPontosFidelidade() + dto.getPontos());
         Cliente saved = clienteRepository.save(c);
         auditService.log(request, "CLIENTE_PONTOS_ADICIONADOS", "Cliente", id, "Pontos: +" + dto.getPontos());
+        return saved;
+    }
+
+    public Cliente resgatarPontos(HttpServletRequest request, Long id, ClienteResgatePontosRequest dto) {
+        Cliente c = get(id);
+        exigirConsentimento(c);
+
+        if (c.getPontosFidelidade() < dto.getPontos()) {
+            throw new BusinessRuleException("Saldo de pontos insuficiente para o resgate");
+        }
+
+        c.setPontosFidelidade(c.getPontosFidelidade() - dto.getPontos());
+        Cliente saved = clienteRepository.save(c);
+        auditService.log(request, "CLIENTE_PONTOS_RESGATADOS", "Cliente", id, "Pontos: -" + dto.getPontos());
         return saved;
     }
 
@@ -105,5 +128,11 @@ public class ClienteService {
         Cliente saved = clienteRepository.save(c);
         auditService.log(request, "CLIENTE_ANONIMIZADO", "Cliente", id, "Anonimização LGPD" );
         return saved;
+    }
+
+    private void exigirConsentimento(Cliente cliente) {
+        if (!Boolean.TRUE.equals(cliente.getLgpdConsentido())) {
+            throw new BusinessRuleException("Cliente sem consentimento LGPD para o programa de fidelidade");
+        }
     }
 }

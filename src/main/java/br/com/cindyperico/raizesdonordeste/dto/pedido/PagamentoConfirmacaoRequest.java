@@ -1,6 +1,5 @@
 package br.com.cindyperico.raizesdonordeste.dto.pedido;
 
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 public class PagamentoConfirmacaoRequest {
@@ -8,7 +7,6 @@ public class PagamentoConfirmacaoRequest {
     @NotNull
     private Boolean confirmado;
 
-    @NotBlank
     private String referenciaExterna;
 
     public Boolean getConfirmado() {

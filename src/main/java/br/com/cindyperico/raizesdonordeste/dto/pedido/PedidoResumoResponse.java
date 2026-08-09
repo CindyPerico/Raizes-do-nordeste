@@ -12,7 +12,7 @@ public class PedidoResumoResponse {
     private Long id;
     private Long clienteId;
     private Long unidadeId;
-    private CanalAtendimento canal;
+    private CanalAtendimento canalPedido;
     private StatusPedido status;
     private StatusPagamentoExterno statusPagamentoExterno;
     private String referenciaPagamentoExterno;
@@ -45,12 +45,12 @@ public class PedidoResumoResponse {
         this.unidadeId = unidadeId;
     }
 
-    public CanalAtendimento getCanal() {
-        return canal;
+    public CanalAtendimento getCanalPedido() {
+        return canalPedido;
     }
 
-    public void setCanal(CanalAtendimento canal) {
-        this.canal = canal;
+    public void setCanalPedido(CanalAtendimento canalPedido) {
+        this.canalPedido = canalPedido;
     }
 
     public StatusPedido getStatus() {

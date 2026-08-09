@@ -15,7 +15,7 @@ public class PedidoCreateRequest {
     private Long unidadeId;
 
     @NotNull
-    private CanalAtendimento canal;
+    private CanalAtendimento canalPedido;
 
     @Valid
     @NotEmpty
@@ -37,12 +37,12 @@ public class PedidoCreateRequest {
         this.unidadeId = unidadeId;
     }
 
-    public CanalAtendimento getCanal() {
-        return canal;
+    public CanalAtendimento getCanalPedido() {
+        return canalPedido;
     }
 
-    public void setCanal(CanalAtendimento canal) {
-        this.canal = canal;
+    public void setCanalPedido(CanalAtendimento canalPedido) {
+        this.canalPedido = canalPedido;
     }
 
     public List<PedidoItemCreateRequest> getItens() {

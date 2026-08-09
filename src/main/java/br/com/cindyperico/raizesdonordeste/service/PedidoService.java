@@ -1,21 +1,33 @@
 package br.com.cindyperico.raizesdonordeste.service;
 
 import br.com.cindyperico.raizesdonordeste.dto.pedido.*;
+import br.com.cindyperico.raizesdonordeste.exception.BusinessRuleException;
+import br.com.cindyperico.raizesdonordeste.exception.NotFoundException;
 import br.com.cindyperico.raizesdonordeste.model.*;
+import br.com.cindyperico.raizesdonordeste.model.enums.CanalAtendimento;
 import br.com.cindyperico.raizesdonordeste.model.enums.StatusPagamentoExterno;
 import br.com.cindyperico.raizesdonordeste.model.enums.StatusPedido;
 import br.com.cindyperico.raizesdonordeste.model.enums.TipoEventoPedido;
 import br.com.cindyperico.raizesdonordeste.repository.*;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Service
+@Transactional
 public class PedidoService {
+
+    private static final BigDecimal REAIS_POR_PONTO = BigDecimal.TEN;
 
     private final PedidoRepository pedidoRepository;
     private final PedidoItemRepository pedidoItemRepository;
@@ -62,7 +74,7 @@ public class PedidoService {
         Pedido pedido = new Pedido();
         pedido.setUnidade(unidade);
         pedido.setCliente(cliente);
-        pedido.setCanal(dto.getCanal());
+        pedido.setCanalPedido(dto.getCanalPedido());
         pedido.setStatus(StatusPedido.CRIADO);
         pedido.setStatusPagamentoExterno(StatusPagamentoExterno.NAO_SOLICITADO);
         pedido.setReferenciaPagamentoExterno(null);
@@ -100,17 +112,36 @@ public class PedidoService {
         savedPedido = pedidoRepository.save(savedPedido);
 
         criarEvento(savedPedido, TipoEventoPedido.STATUS_ALTERADO, "Pedido criado", null, request);
-        auditService.log(request, "PEDIDO_CRIADO", "Pedido", savedPedido.getId(), "UnidadeId=" + unidade.getId());
+        auditService.log(request, "PEDIDO_CRIADO", "Pedido", savedPedido.getId(), "UnidadeId=" + unidade.getId()
+                + ", canalPedido=" + savedPedido.getCanalPedido());
 
         return savedPedido;
     }
 
-    public List<Pedido> list() {
-        return pedidoRepository.findAll();
+    public Page<Pedido> buscar(CanalAtendimento canalPedido, StatusPedido status, Long unidadeId, Pageable pageable) {
+        Specification<Pedido> spec = (root, query, cb) -> {
+            List<jakarta.persistence.criteria.Predicate> predicates = new ArrayList<>();
+            if (canalPedido != null) {
+                predicates.add(cb.equal(root.get("canalPedido"), canalPedido));
+            }
+            if (status != null) {
+                predicates.add(cb.equal(root.get("status"), status));
+            }
+            if (unidadeId != null) {
+                predicates.add(cb.equal(root.get("unidade").get("id"), unidadeId));
+            }
+            return cb.and(predicates.toArray(new jakarta.persistence.criteria.Predicate[0]));
+        };
+
+        return pedidoRepository.findAll(spec, pageable);
     }
 
     public Pedido get(Long id) {
-        return pedidoRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Pedido não encontrado"));
+        return pedidoRepository.findById(id).orElseThrow(() -> new NotFoundException("Pedido não encontrado"));
+    }
+
+    public List<PedidoItem> itensDoPedido(Long pedidoId) {
+        return pedidoItemRepository.findByPedidoId(pedidoId);
     }
 
     public Pedido updateStatus(HttpServletRequest request, Long id, PedidoStatusUpdateRequest dto) {
@@ -118,7 +149,7 @@ public class PedidoService {
         StatusPedido novo = dto.getStatus();
 
         if (p.getStatus() == StatusPedido.CANCELADO) {
-            throw new IllegalArgumentException("Pedido cancelado não pode mudar de status");
+            throw new BusinessRuleException("Pedido cancelado não pode mudar de status");
         }
 
         p.setStatus(novo);
@@ -134,15 +165,20 @@ public class PedidoService {
         Pedido p = get(id);
 
         if (p.getStatus() == StatusPedido.CANCELADO) {
-            throw new IllegalArgumentException("Pedido cancelado");
+            throw new BusinessRuleException("Pedido cancelado");
+        }
+
+        if (p.getStatusPagamentoExterno() == StatusPagamentoExterno.CONFIRMADO) {
+            throw new BusinessRuleException("Pagamento já confirmado para este pedido");
         }
 
         p.setStatus(StatusPedido.AGUARDANDO_PAGAMENTO);
         p.setStatusPagamentoExterno(StatusPagamentoExterno.SOLICITADO);
+        p.setReferenciaPagamentoExterno("MOCK-" + UUID.randomUUID());
 
         Pedido saved = pedidoRepository.save(p);
-        criarEvento(saved, TipoEventoPedido.CONFIRMACAO_PAGAMENTO, "Pagamento solicitado", null, request);
-        auditService.log(request, "PAGAMENTO_SOLICITADO", "Pedido", id, "");
+        criarEvento(saved, TipoEventoPedido.CONFIRMACAO_PAGAMENTO, "Pagamento solicitado ao gateway mock", null, request);
+        auditService.log(request, "PAGAMENTO_SOLICITADO", "Pedido", id, "ref=" + saved.getReferenciaPagamentoExterno());
 
         return saved;
     }
@@ -151,21 +187,28 @@ public class PedidoService {
         Pedido p = get(id);
 
         if (p.getStatus() == StatusPedido.CANCELADO) {
-            throw new IllegalArgumentException("Pedido cancelado");
+            throw new BusinessRuleException("Pedido cancelado");
         }
 
-        p.setReferenciaPagamentoExterno(dto.getReferenciaExterna());
+        if (p.getStatusPagamentoExterno() == StatusPagamentoExterno.NAO_SOLICITADO) {
+            throw new BusinessRuleException("Pagamento ainda não foi solicitado para este pedido");
+        }
+
+        if (dto.getReferenciaExterna() != null) {
+            p.setReferenciaPagamentoExterno(dto.getReferenciaExterna());
+        }
 
         if (Boolean.TRUE.equals(dto.getConfirmado())) {
             p.setStatusPagamentoExterno(StatusPagamentoExterno.CONFIRMADO);
             p.setStatus(StatusPedido.PAGO);
             baixarEstoqueDoPedido(p);
+            creditarPontosFidelidade(request, p);
             criarEvento(p, TipoEventoPedido.CONFIRMACAO_PAGAMENTO, "Pagamento confirmado", null, request);
-            auditService.log(request, "PAGAMENTO_CONFIRMADO", "Pedido", id, "ref=" + dto.getReferenciaExterna());
+            auditService.log(request, "PAGAMENTO_CONFIRMADO", "Pedido", id, "ref=" + p.getReferenciaPagamentoExterno());
         } else {
             p.setStatusPagamentoExterno(StatusPagamentoExterno.RECUSADO);
-            criarEvento(p, TipoEventoPedido.CONFIRMACAO_PAGAMENTO, "Pagamento recusado", null, request);
-            auditService.log(request, "PAGAMENTO_RECUSADO", "Pedido", id, "ref=" + dto.getReferenciaExterna());
+            criarEvento(p, TipoEventoPedido.CONFIRMACAO_PAGAMENTO, "Pagamento recusado pelo gateway mock", null, request);
+            auditService.log(request, "PAGAMENTO_RECUSADO", "Pedido", id, "ref=" + p.getReferenciaPagamentoExterno());
         }
 
         return pedidoRepository.save(p);
@@ -174,11 +217,11 @@ public class PedidoService {
     public Pedido aplicarDesconto(HttpServletRequest request, Long id, PedidoDescontoRequest dto) {
         Pedido p = get(id);
         if (p.getStatus() == StatusPedido.CANCELADO) {
-            throw new IllegalArgumentException("Pedido cancelado");
+            throw new BusinessRuleException("Pedido cancelado");
         }
 
         if (dto.getValor().compareTo(p.getSubtotal()) > 0) {
-            throw new IllegalArgumentException("Desconto não pode ser maior que o subtotal");
+            throw new BusinessRuleException("Desconto não pode ser maior que o subtotal");
         }
 
         p.setDesconto(dto.getValor());
@@ -199,7 +242,7 @@ public class PedidoService {
         }
 
         if (p.getStatus() == StatusPedido.FINALIZADO) {
-            throw new IllegalArgumentException("Pedido finalizado não pode ser cancelado");
+            throw new BusinessRuleException("Pedido finalizado não pode ser cancelado");
         }
 
         p.setStatus(StatusPedido.CANCELADO);
@@ -215,7 +258,7 @@ public class PedidoService {
         Pedido p = get(id);
 
         if (p.getCliente() == null) {
-            throw new IllegalArgumentException("Pedido não possui cliente para ajustar pontos");
+            throw new BusinessRuleException("Pedido não possui cliente para ajustar pontos");
         }
 
         if (dto.getPontosAdicionar() == 0) {
@@ -230,12 +273,30 @@ public class PedidoService {
         auditService.log(request, "PEDIDO_AJUSTE_PONTOS", "Pedido", id, "pontos=" + dto.getPontosAdicionar() + ", motivo=" + dto.getMotivo());
     }
 
+    private void creditarPontosFidelidade(HttpServletRequest request, Pedido pedido) {
+        Cliente cliente = pedido.getCliente();
+
+        if (cliente == null || !Boolean.TRUE.equals(cliente.getLgpdConsentido())) {
+            return;
+        }
+
+        int pontos = pedido.getTotal().divideToIntegralValue(REAIS_POR_PONTO).intValue();
+        if (pontos <= 0) {
+            return;
+        }
+
+        cliente.setPontosFidelidade(cliente.getPontosFidelidade() + pontos);
+        clienteRepository.save(cliente);
+        auditService.log(request, "FIDELIDADE_PONTOS_CREDITADOS", "Cliente", cliente.getId(),
+                "pedidoId=" + pedido.getId() + ", pontos=" + pontos);
+    }
+
     private void validarProdutoDisponivelNaUnidade(Long produtoId, Long unidadeId) {
         ProdutoUnidade pu = produtoUnidadeRepository.findByProdutoIdAndUnidadeId(produtoId, unidadeId)
-                .orElseThrow(() -> new IllegalArgumentException("Produto não disponível nesta unidade"));
+                .orElseThrow(() -> new NotFoundException("Produto não faz parte do cardápio desta unidade"));
 
         if (!Boolean.TRUE.equals(pu.getDisponivel())) {
-            throw new IllegalArgumentException("Produto indisponível nesta unidade");
+            throw new BusinessRuleException("Produto indisponível nesta unidade");
         }
     }
 
@@ -257,16 +318,16 @@ public class PedidoService {
         }
 
         if (!dentro) {
-            throw new IllegalArgumentException("Produto sazonal fora do período" );
+            throw new BusinessRuleException("Produto sazonal fora do período");
         }
     }
 
     private void validarEstoque(Long unidadeId, Long produtoId, int quantidade) {
         EstoqueItem item = estoqueItemRepository.findByUnidadeIdAndProdutoId(unidadeId, produtoId)
-                .orElseThrow(() -> new IllegalArgumentException("Sem estoque cadastrado para o produto nesta unidade"));
+                .orElseThrow(() -> new BusinessRuleException("Sem estoque cadastrado para o produto nesta unidade"));
 
         if (item.getQuantidade() < quantidade) {
-            throw new IllegalArgumentException("Estoque insuficiente");
+            throw new BusinessRuleException("Estoque insuficiente");
         }
     }
 
@@ -281,11 +342,11 @@ public class PedidoService {
 
         for (PedidoItem i : itens) {
             EstoqueItem estoque = estoqueItemRepository.findByUnidadeIdAndProdutoId(pedido.getUnidade().getId(), i.getProduto().getId())
-                    .orElseThrow(() -> new IllegalArgumentException("Item de estoque não encontrado"));
+                    .orElseThrow(() -> new BusinessRuleException("Item de estoque não encontrado"));
 
             int novaQtd = estoque.getQuantidade() - i.getQuantidade();
             if (novaQtd < 0) {
-                throw new IllegalArgumentException("Estoque insuficiente" );
+                throw new BusinessRuleException("Estoque insuficiente");
             }
             estoque.setQuantidade(novaQtd);
             estoqueItemRepository.save(estoque);

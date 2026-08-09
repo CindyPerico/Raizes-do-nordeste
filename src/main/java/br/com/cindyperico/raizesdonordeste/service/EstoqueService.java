@@ -1,5 +1,7 @@
 package br.com.cindyperico.raizesdonordeste.service;
 
+import br.com.cindyperico.raizesdonordeste.exception.BusinessRuleException;
+import br.com.cindyperico.raizesdonordeste.exception.NotFoundException;
 import br.com.cindyperico.raizesdonordeste.dto.estoque.EstoqueAjusteRequest;
 import br.com.cindyperico.raizesdonordeste.dto.estoque.EstoqueUpdateRequest;
 import br.com.cindyperico.raizesdonordeste.model.EstoqueItem;
@@ -8,8 +10,10 @@ import br.com.cindyperico.raizesdonordeste.model.Unidade;
 import br.com.cindyperico.raizesdonordeste.repository.EstoqueItemRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@Transactional
 public class EstoqueService {
 
     private final EstoqueItemRepository estoqueItemRepository;
@@ -55,7 +59,7 @@ public class EstoqueService {
 
         int novaQtd = item.getQuantidade() + dto.getDelta();
         if (novaQtd < 0) {
-            throw new IllegalArgumentException("Estoque não pode ficar negativo");
+            throw new BusinessRuleException("Estoque não pode ficar negativo");
         }
         item.setQuantidade(novaQtd);
 
@@ -66,6 +70,6 @@ public class EstoqueService {
 
     public EstoqueItem getItem(Long unidadeId, Long produtoId) {
         return estoqueItemRepository.findByUnidadeIdAndProdutoId(unidadeId, produtoId)
-                .orElseThrow(() -> new IllegalArgumentException("Item de estoque não encontrado"));
+                .orElseThrow(() -> new NotFoundException("Item de estoque não encontrado"));
     }
 }

@@ -1,5 +1,6 @@
 package br.com.cindyperico.raizesdonordeste.service;
 
+import br.com.cindyperico.raizesdonordeste.exception.NotFoundException;
 import br.com.cindyperico.raizesdonordeste.dto.funcionario.FuncionarioCreateRequest;
 import br.com.cindyperico.raizesdonordeste.dto.funcionario.FuncionarioUpdateRequest;
 import br.com.cindyperico.raizesdonordeste.model.Funcionario;
@@ -7,10 +8,12 @@ import br.com.cindyperico.raizesdonordeste.model.Unidade;
 import br.com.cindyperico.raizesdonordeste.repository.FuncionarioRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
 @Service
+@Transactional
 public class FuncionarioService {
 
     private final FuncionarioRepository funcionarioRepository;
@@ -49,7 +52,7 @@ public class FuncionarioService {
     }
 
     public Funcionario get(Long id) {
-        return funcionarioRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Funcionário não encontrado"));
+        return funcionarioRepository.findById(id).orElseThrow(() -> new NotFoundException("Funcionário não encontrado"));
     }
 
     public Funcionario update(HttpServletRequest request, Long id, FuncionarioUpdateRequest dto) {

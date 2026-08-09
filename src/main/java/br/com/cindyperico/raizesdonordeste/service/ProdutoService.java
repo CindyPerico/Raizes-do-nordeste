@@ -1,15 +1,20 @@
 package br.com.cindyperico.raizesdonordeste.service;
 
+import br.com.cindyperico.raizesdonordeste.exception.NotFoundException;
+import br.com.cindyperico.raizesdonordeste.exception.ValidationException;
 import br.com.cindyperico.raizesdonordeste.dto.produto.ProdutoCreateRequest;
 import br.com.cindyperico.raizesdonordeste.dto.produto.ProdutoUpdateRequest;
 import br.com.cindyperico.raizesdonordeste.model.Produto;
 import br.com.cindyperico.raizesdonordeste.repository.ProdutoRepository;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 
 @Service
+@Transactional
 public class ProdutoService {
 
     private final ProdutoRepository produtoRepository;
@@ -36,12 +41,13 @@ public class ProdutoService {
         return saved;
     }
 
-    public List<Produto> list() {
-        return produtoRepository.findAll();
+    @Transactional(readOnly = true)
+    public Page<Produto> list(Pageable pageable) {
+        return produtoRepository.findAll(pageable);
     }
 
     public Produto get(Long id) {
-        return produtoRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Produto não encontrado"));
+        return produtoRepository.findById(id).orElseThrow(() -> new NotFoundException("Produto não encontrado"));
     }
 
     public Produto update(HttpServletRequest request, Long id, ProdutoUpdateRequest dto) {
@@ -73,10 +79,10 @@ public class ProdutoService {
             return;
         }
         if (inicio == null || fim == null) {
-            throw new IllegalArgumentException("Sazonalidade inválida: informe mês início e mês fim");
+            throw new ValidationException("Sazonalidade inválida: informe mês início e mês fim");
         }
         if (inicio < 1 || inicio > 12 || fim < 1 || fim > 12) {
-            throw new IllegalArgumentException("Sazonalidade inválida: meses devem estar entre 1 e 12");
+            throw new ValidationException("Sazonalidade inválida: meses devem estar entre 1 e 12");
         }
     }
 }

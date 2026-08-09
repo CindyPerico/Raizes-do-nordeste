@@ -25,8 +25,8 @@ public class Pedido {
     private Unidade unidade;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
-    private CanalAtendimento canal;
+    @Column(name = "canal_pedido", nullable = false, length = 20)
+    private CanalAtendimento canalPedido;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
@@ -75,12 +75,12 @@ public class Pedido {
         this.unidade = unidade;
     }
 
-    public CanalAtendimento getCanal() {
-        return canal;
+    public CanalAtendimento getCanalPedido() {
+        return canalPedido;
     }
 
-    public void setCanal(CanalAtendimento canal) {
-        this.canal = canal;
+    public void setCanalPedido(CanalAtendimento canalPedido) {
+        this.canalPedido = canalPedido;
     }
 
     public StatusPedido getStatus() {

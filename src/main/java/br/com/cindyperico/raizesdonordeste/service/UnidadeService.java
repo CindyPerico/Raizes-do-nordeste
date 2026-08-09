@@ -1,15 +1,18 @@
 package br.com.cindyperico.raizesdonordeste.service;
 
+import br.com.cindyperico.raizesdonordeste.exception.NotFoundException;
 import br.com.cindyperico.raizesdonordeste.dto.unidade.UnidadeCreateRequest;
 import br.com.cindyperico.raizesdonordeste.dto.unidade.UnidadeUpdateRequest;
 import br.com.cindyperico.raizesdonordeste.model.Unidade;
 import br.com.cindyperico.raizesdonordeste.repository.UnidadeRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
 @Service
+@Transactional
 public class UnidadeService {
 
     private final UnidadeRepository unidadeRepository;
@@ -37,7 +40,7 @@ public class UnidadeService {
     }
 
     public Unidade get(Long id) {
-        return unidadeRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Unidade não encontrada"));
+        return unidadeRepository.findById(id).orElseThrow(() -> new NotFoundException("Unidade não encontrada"));
     }
 
     public Unidade update(HttpServletRequest request, Long id, UnidadeUpdateRequest dto) {

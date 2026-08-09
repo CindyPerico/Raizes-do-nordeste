@@ -4,5 +4,6 @@ public enum CanalAtendimento {
     APP,
     TOTEM,
     BALCAO,
-    PICKUP
+    PICKUP,
+    WEB
 }
