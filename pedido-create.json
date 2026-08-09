@@ -1,0 +1,11 @@
+﻿{
+  "clienteId": null,
+  "unidadeId": 1,
+  "canal": "BALCAO",
+  "itens": [
+    {
+      "produtoId": 1,
+      "quantidade": 2
+    }
+  ]
+}

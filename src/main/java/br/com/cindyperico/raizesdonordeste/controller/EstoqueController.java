@@ -1,6 +1,7 @@
 package br.com.cindyperico.raizesdonordeste.controller;
 
 import br.com.cindyperico.raizesdonordeste.dto.estoque.EstoqueAjusteRequest;
+import br.com.cindyperico.raizesdonordeste.dto.estoque.EstoqueResponse;
 import br.com.cindyperico.raizesdonordeste.dto.estoque.EstoqueUpdateRequest;
 import br.com.cindyperico.raizesdonordeste.model.EstoqueItem;
 import br.com.cindyperico.raizesdonordeste.service.EstoqueService;
@@ -20,23 +21,47 @@ public class EstoqueController {
     }
 
     @GetMapping("/produtos/{produtoId}")
-    public ResponseEntity<EstoqueItem> get(@PathVariable Long unidadeId, @PathVariable Long produtoId) {
-        return ResponseEntity.ok(estoqueService.getItem(unidadeId, produtoId));
+    public ResponseEntity<EstoqueResponse> get(
+            @PathVariable Long unidadeId,
+            @PathVariable Long produtoId) {
+
+        return ResponseEntity.ok(toResponse(
+                estoqueService.getItem(unidadeId, produtoId)
+        ));
     }
 
     @PutMapping("/produtos/{produtoId}")
-    public ResponseEntity<EstoqueItem> setQuantidade(HttpServletRequest request,
-                                                     @PathVariable Long unidadeId,
-                                                     @PathVariable Long produtoId,
-                                                     @Valid @RequestBody EstoqueUpdateRequest dto) {
-        return ResponseEntity.ok(estoqueService.setQuantidade(request, unidadeId, produtoId, dto));
+    public ResponseEntity<EstoqueResponse> setQuantidade(
+            HttpServletRequest request,
+            @PathVariable Long unidadeId,
+            @PathVariable Long produtoId,
+            @Valid @RequestBody EstoqueUpdateRequest dto) {
+
+        return ResponseEntity.ok(toResponse(
+                estoqueService.setQuantidade(request, unidadeId, produtoId, dto)
+        ));
     }
 
     @PostMapping("/produtos/{produtoId}/ajuste")
-    public ResponseEntity<EstoqueItem> ajuste(HttpServletRequest request,
-                                             @PathVariable Long unidadeId,
-                                             @PathVariable Long produtoId,
-                                             @Valid @RequestBody EstoqueAjusteRequest dto) {
-        return ResponseEntity.ok(estoqueService.ajustar(request, unidadeId, produtoId, dto));
+    public ResponseEntity<EstoqueResponse> ajuste(
+            HttpServletRequest request,
+            @PathVariable Long unidadeId,
+            @PathVariable Long produtoId,
+            @Valid @RequestBody EstoqueAjusteRequest dto) {
+
+        return ResponseEntity.ok(toResponse(
+                estoqueService.ajustar(request, unidadeId, produtoId, dto)
+        ));
+    }
+
+    private EstoqueResponse toResponse(EstoqueItem item) {
+        EstoqueResponse response = new EstoqueResponse();
+
+        response.setId(item.getId());
+        response.setUnidadeId(item.getUnidade().getId());
+        response.setProdutoId(item.getProduto().getId());
+        response.setQuantidade(item.getQuantidade());
+
+        return response;
     }
 }

@@ -1,0 +1,8 @@
+﻿{
+  "nome": "Cuscuz Nordestino",
+  "descricao": "Cuscuz tradicional da casa",
+  "precoBase": 12.50,
+  "mesInicioSazonal": 1,
+  "mesFimSazonal": 12,
+  "ativo": true
+}
