@@ -1,0 +1,253 @@
+### T01 Login valido (200)
+$ curl -s -X POST http://localhost:8082/api/auth/login -H 'Content-Type: application/json' -d '{"email":"admin@raizes.com","senha":"admin12345"}' | python3 -m json.tool
+{
+    "accessToken": "<TOKEN>",
+    "tokenType": "Bearer",
+    "expiresInMs": 3600000,
+    "email": "admin@raizes.com",
+    "role": "ADMIN"
+}
+
+
+### T03 Cardapio da unidade 1 (200)
+$ curl -s http://localhost:8082/api/unidades/1/produtos -H "Authorization: Bearer <TOKEN>" | python3 -m json.tool
+[
+    {
+        "produtoId": 1,
+        "nome": "Bai\u00e3o de Dois",
+        "descricao": "Arroz, feij\u00e3o de corda, queijo coalho e carne seca",
+        "preco": 32.9,
+        "disponivel": true,
+        "quantidadeEmEstoque": 50
+    },
+    {
+        "produtoId": 2,
+        "nome": "Tapioca de Carne de Sol",
+        "descricao": "Tapioca recheada com carne de sol e queijo",
+        "preco": 24.5,
+        "disponivel": true,
+        "quantidadeEmEstoque": 40
+    },
+    {
+        "produtoId": 3,
+        "nome": "Caju\u00edna gelada",
+        "descricao": "Bebida tradicional do Piau\u00ed, 300ml",
+        "preco": 9.9,
+        "disponivel": true,
+        "quantidadeEmEstoque": 100
+    }
+]
+
+
+### T04 Criar pedido canalPedido=TOTEM (201)
+{
+    "id": 1,
+    "clienteId": 1,
+    "unidadeId": 1,
+    "canalPedido": "TOTEM",
+    "status": "CRIADO",
+    "statusPagamentoExterno": "NAO_SOLICITADO",
+    "referenciaPagamentoExterno": null,
+    "criadoEm": "2026-08-10T23:15:28.543461959Z",
+    "subtotal": 65.8,
+    "desconto": 0,
+    "total": 65.8
+}
+
+
+### T05 Consentimento LGPD do cliente 1 (200)
+$ curl -s -X PUT http://localhost:8082/api/clientes/1/consentimento -H "Authorization: Bearer <TOKEN>" -H 'Content-Type: application/json' -d '{"consentido":true}' | python3 -m json.tool
+{
+    "id": 1,
+    "nome": "Maria Souza",
+    "cpf": "123.456.789-00",
+    "email": "maria.souza@example.com",
+    "telefone": "(81) 99999-0000",
+    "pontosFidelidade": 0,
+    "lgpdConsentido": true,
+    "lgpdConsentidoEm": "2026-08-10T23:15:28.63115853Z",
+    "anonimizado": false,
+    "anonimizadoEm": null
+}
+
+
+### T06 Solicitar pagamento mock (200)
+$ curl -s -X POST http://localhost:8082/api/pedidos/1/pagamento/solicitar -H "Authorization: Bearer <TOKEN>" | python3 -m json.tool
+{
+    "id": 1,
+    "clienteId": 1,
+    "unidadeId": 1,
+    "canalPedido": "TOTEM",
+    "status": "AGUARDANDO_PAGAMENTO",
+    "statusPagamentoExterno": "SOLICITADO",
+    "referenciaPagamentoExterno": "MOCK-474b0b65-290c-4b8c-a25b-f86a6b383186",
+    "criadoEm": "2026-08-10T23:15:28.543462Z",
+    "subtotal": 65.8,
+    "desconto": 0.0,
+    "total": 65.8
+}
+
+
+### T07 Confirmar pagamento aprovado (200)
+$ curl -s -X POST http://localhost:8082/api/pedidos/1/pagamento/confirmar -H "Authorization: Bearer <TOKEN>" -H 'Content-Type: application/json' -d '{"confirmado":true}' | python3 -m json.tool
+{
+    "id": 1,
+    "clienteId": 1,
+    "unidadeId": 1,
+    "canalPedido": "TOTEM",
+    "status": "PAGO",
+    "statusPagamentoExterno": "CONFIRMADO",
+    "referenciaPagamentoExterno": "MOCK-474b0b65-290c-4b8c-a25b-f86a6b383186",
+    "criadoEm": "2026-08-10T23:15:28.543462Z",
+    "subtotal": 65.8,
+    "desconto": 0.0,
+    "total": 65.8
+}
+
+
+### T08 Estoque apos baixa automatica (200)
+$ curl -s http://localhost:8082/api/unidades/1/estoque/produtos/1 -H "Authorization: Bearer <TOKEN>" | python3 -m json.tool
+{
+    "id": 1,
+    "unidadeId": 1,
+    "produtoId": 1,
+    "quantidade": 48
+}
+
+
+### T09 Pontos de fidelidade creditados (200)
+$ curl -s http://localhost:8082/api/clientes/1 -H "Authorization: Bearer <TOKEN>" | python3 -m json.tool
+{
+    "id": 1,
+    "nome": "Maria Souza",
+    "cpf": "123.456.789-00",
+    "email": "maria.souza@example.com",
+    "telefone": "(81) 99999-0000",
+    "pontosFidelidade": 6,
+    "lgpdConsentido": true,
+    "lgpdConsentidoEm": "2026-08-10T23:15:28.631159Z",
+    "anonimizado": false,
+    "anonimizadoEm": null
+}
+
+
+### T10 Atualizar status para EM_PREPARO (200)
+$ curl -s -X PUT http://localhost:8082/api/pedidos/1/status -H "Authorization: Bearer <TOKEN>" -H 'Content-Type: application/json' -d '{"status":"EM_PREPARO"}' | python3 -m json.tool
+{
+    "id": 1,
+    "clienteId": 1,
+    "unidadeId": 1,
+    "canalPedido": "TOTEM",
+    "status": "EM_PREPARO",
+    "statusPagamentoExterno": "CONFIRMADO",
+    "referenciaPagamentoExterno": "MOCK-474b0b65-290c-4b8c-a25b-f86a6b383186",
+    "criadoEm": "2026-08-10T23:15:28.543462Z",
+    "subtotal": 65.8,
+    "desconto": 0.0,
+    "total": 65.8
+}
+
+
+### T11 Pagamento recusado (200, pedido segue AGUARDANDO_PAGAMENTO)
+$ curl -s -X POST http://localhost:8082/api/pedidos/2/pagamento/confirmar -H "Authorization: Bearer <TOKEN>" -H 'Content-Type: application/json' -d '{"confirmado":false}' | python3 -m json.tool
+{
+    "id": 2,
+    "clienteId": 1,
+    "unidadeId": 1,
+    "canalPedido": "APP",
+    "status": "AGUARDANDO_PAGAMENTO",
+    "statusPagamentoExterno": "RECUSADO",
+    "referenciaPagamentoExterno": "MOCK-ba62fcbc-be15-4fa8-99b9-fe0c82d9d298",
+    "criadoEm": "2026-08-10T23:15:28.779727Z",
+    "subtotal": 9.9,
+    "desconto": 0.0,
+    "total": 9.9
+}
+
+
+### T12 Filtro por canal com paginacao (200)
+$ curl -s 'http://localhost:8082/api/pedidos?canalPedido=TOTEM&page=0&size=5' -H "Authorization: Bearer <TOKEN>" | python3 -m json.tool
+{
+    "content": [
+        {
+            "id": 1,
+            "clienteId": 1,
+            "unidadeId": 1,
+            "canalPedido": "TOTEM",
+            "status": "EM_PREPARO",
+            "statusPagamentoExterno": "CONFIRMADO",
+            "referenciaPagamentoExterno": "MOCK-474b0b65-290c-4b8c-a25b-f86a6b383186",
+            "criadoEm": "2026-08-10T23:15:28.543462Z",
+            "subtotal": 65.8,
+            "desconto": 0.0,
+            "total": 65.8
+        }
+    ],
+    "page": 0,
+    "size": 5,
+    "totalElements": 1,
+    "totalPages": 1,
+    "last": true
+}
+
+
+### T13 Relatorio financeiro (200)
+$ curl -s 'http://localhost:8082/api/relatorios/financeiro?unidadeId=1' -H "Authorization: Bearer <TOKEN>" | python3 -m json.tool
+{
+    "totalPedidos": 2,
+    "totalVendido": 75.7,
+    "totalDescontos": 0.0
+}
+
+
+### T14 Acesso sem token (401)
+{"timestamp":"2026-08-10T23:15:28.905750515Z","status":401,"error":"Unauthorized","message":"Autenticacao necessaria: informe um token JWT valido","path":"/api/pedidos"}
+HTTP 401
+
+
+### T15 Perfil CLIENTE em rota administrativa (403)
+{"timestamp":"2026-08-10T23:15:28.915187926Z","status":403,"error":"Forbidden","message":"Acesso negado: perfil sem permissao para este recurso","path":"/api/relatorios/financeiro"}
+HTTP 403
+
+
+### T16 Pedido sem canalPedido (400)
+{"timestamp":"2026-08-10T23:15:28.935990332Z","status":400,"error":"Bad Request","message":"canalPedido: must not be null","path":"/api/pedidos"}
+HTTP 400
+
+
+### T17 Produto inexistente (404)
+{"timestamp":"2026-08-10T23:15:28.951686374Z","status":404,"error":"Not Found","message":"Produto não encontrado","path":"/api/pedidos"}
+HTTP 404
+
+
+### T18 Estoque insuficiente (409)
+{"timestamp":"2026-08-10T23:15:28.968582746Z","status":409,"error":"Conflict","message":"Estoque insuficiente","path":"/api/pedidos"}
+HTTP 409
+
+
+### T19 Quantidade invalida (400)
+{"timestamp":"2026-08-10T23:15:28.981294511Z","status":400,"error":"Bad Request","message":"itens[0].quantidade: must be greater than or equal to 1","path":"/api/pedidos"}
+HTTP 400
+
+
+### T20 Resgate acima do saldo (409)
+{"timestamp":"2026-08-10T23:15:28.994735748Z","status":409,"error":"Conflict","message":"Saldo de pontos insuficiente para o resgate","path":"/api/clientes/1/pontos/resgatar"}
+HTTP 409
+
+
+### T21 Anonimizacao LGPD de um cliente novo (200)
+$ CID=$(curl -s -X POST http://localhost:8082/api/clientes -H "Authorization: Bearer <TOKEN>" -H 'Content-Type: application/json' -d '{"nome":"Cliente Teste","cpf":"111.222.333-44","email":"teste@example.com"}' | python3 -c "import sys,json;print(json.load(sys.stdin)['id'])"); curl -s -X POST http://localhost:8082/api/clientes/$CID/anonimizar -H "Authorization: Bearer <TOKEN>" | python3 -m json.tool
+{
+    "id": 2,
+    "nome": "ANONIMIZADO",
+    "cpf": null,
+    "email": null,
+    "telefone": null,
+    "pontosFidelidade": 0,
+    "lgpdConsentido": false,
+    "lgpdConsentidoEm": null,
+    "anonimizado": true,
+    "anonimizadoEm": "2026-08-10T23:15:29.027438945Z"
+}
+
+
