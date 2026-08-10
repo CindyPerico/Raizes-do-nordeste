@@ -152,7 +152,16 @@ a partir dos diagramas e evidências do próprio repositório:
 ```bash
 pip install reportlab pillow
 python3 docs/pdf/gerar_pdf.py --aluno "Seu Nome" --ru 1234567 \
-  --saida "1234567_Projeto_Back_End.pdf"
+  --saida "docs/pdf/1234567_Projeto_Back_End.pdf"
+```
+
+Para uma versão editável (Word, Word online ou Google Docs), com o mesmo conteúdo e
+sumário automático:
+
+```bash
+pip install python-docx pillow
+python3 docs/pdf/gerar_docx.py --aluno "Seu Nome" --ru 1234567 \
+  --saida "docs/pdf/1234567_Projeto_Back_End.docx"
 ```
 
 ## 11. Estrutura do projeto
