@@ -142,27 +142,6 @@ newman run docs/postman/RaizesDoNordeste.postman_collection.json \
 | [`DOCUMENTACAO.md`](DOCUMENTACAO.md) | Documento acadêmico consolidado |
 | [`docs/evidencias-execucao.txt`](docs/evidencias-execucao.txt) | Saída completa dos cenários executados contra a API |
 | [`docs/imagens/`](docs/imagens) | Diagramas exportados em PNG e prints do Swagger e da auditoria |
-| [`docs/pdf/`](docs/pdf) | PDF único de entrega (ABNT) e script que o gera |
-
-### Gerar o PDF de entrega
-
-O documento final em PDF (capa, sumário, seções do roteiro, conclusão e referências) é gerado
-a partir dos diagramas e evidências do próprio repositório:
-
-```bash
-pip install reportlab pillow
-python3 docs/pdf/gerar_pdf.py --aluno "Seu Nome" --ru 1234567 \
-  --saida "docs/pdf/1234567_Projeto_Back_End.pdf"
-```
-
-Para uma versão editável (Word, Word online ou Google Docs), com o mesmo conteúdo e
-sumário automático:
-
-```bash
-pip install python-docx pillow
-python3 docs/pdf/gerar_docx.py --aluno "Seu Nome" --ru 1234567 \
-  --saida "docs/pdf/1234567_Projeto_Back_End.docx"
-```
 
 ## 11. Estrutura do projeto
 
